@@ -33,7 +33,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import openpyxl
-
+from datetime import datetime
 
 
 class Crawler:
@@ -63,12 +63,30 @@ class Crawler:
                 document = document.replace(":", "").strip()
                 nationality = nationality.replace(":", "").strip()
 
+                try:
+                    # Mapeo de meses en español a inglés
+                    meses = {
+                        "ene": "Jan", "feb": "Feb", "mar": "Mar", "abr": "Apr", "may": "May", "jun": "Jun",
+                        "jul": "Jul", "ago": "Aug", "sep": "Sep", "oct": "Oct", "nov": "Nov", "dic": "Dec"
+                    }
+
+                    for esp, eng in meses.items():
+                        if esp in birthdate:
+                            birthdate = birthdate.replace(esp, eng)
+                            break
+
+                    birthdate = datetime.strptime(birthdate, "%d %b %Y").date()
+                    birthdate_str = birthdate.strftime("%d/%m/%Y")
+
+                except ValueError:
+                    birthdate_str = "N/A"  # Si la fecha no se puede convertir, dejamos "N/A"
+
                 # Diccionario con los datos requeridos
                 wanted = {
                     "name": name,
                     "lastname": lastname,
                     "gender": gender,
-                    "birthdate": birthdate,
+                    "birthdate":birthdate_str ,
                     "document": document,
                     "nationality": nationality
                 }
