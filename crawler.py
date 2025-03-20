@@ -92,9 +92,6 @@ class Crawler:
                 }
                 self.date_wanted.append(wanted)
                 print(f"Esto es el producto: {wanted}")
-
-
-
         except Exception as e:
             print(f"Hubo un error: {e}")
 
@@ -116,7 +113,6 @@ class Crawler:
                 soup1 = BeautifulSoup(response_1.text, "html.parser")
                 #print(f"Esto es lo que imprime en soup1 {soup1}")
                 self.wanted_unique_profile(soup1)
-                break
         except Exception as e:
             print(f"Erro al solicitar la informacion de {e}")
 
@@ -133,7 +129,6 @@ class Crawler:
                 #print(f"Esto es lo que tengo en profile_link_data_single{profile_link_data_single}")
                 #self.get_information_profile(profile_link_data_single)
                 self.profiles_links_data.append(profile_link_data_single)
-                break
         except Exception as e:
             print(f"Error al extraer  la informacion: {e}")
 
@@ -143,7 +138,6 @@ class Crawler:
             response = requests.get(f"{config.BASE_URL_PAGE}", headers=config.HEADERS, timeout=100)
             soup = BeautifulSoup(response.text, "html.parser")
             self.scraping_profile(soup)
-
         except:
             print("Error al intentar solicitar la informacion")
 
@@ -152,7 +146,6 @@ class Crawler:
         self.get_all_information()
         self.get_information_profile()
         self.create_files()
-
         return  None
 
 
