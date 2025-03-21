@@ -1,4 +1,5 @@
 #Datos necesarios:
+''' FIJATE LAS IMPORTACIONES AUTOMATICAS QUE TE HACE '''
 from asyncio import timeout
 
 #Genero (gender)
@@ -28,11 +29,13 @@ from asyncio import timeout
 
 
 
+
 import config
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import openpyxl
+'''El openpyxl no se importa, solo se lo instala y se lo usa'''
+#import openpyxl
 from datetime import datetime
 
 
@@ -82,6 +85,40 @@ class Crawler:
                     birthdate_str = "N/A"  # Si la fecha no se puede convertir, dejamos "N/A"
 
                 # Diccionario con los datos requeridos
+
+                ''' Estos son los campos que se solicitaron
+                    
+                    * first_name
+                    * middle_name
+                    * last_name
+                    * second_name
+                    * id_numer
+                    * type_id
+                    * gender
+                    * date_of_birth
+                    * age
+                    * nationality
+                
+                Cosas a mejorar:   
+                * En el caso de que algun campo no exista, directamente colocar: None como su valor
+                
+                * La fecha debe de tener este formato: yyyy-mm-dd Ejemplo: 1998-03-35
+                
+                * Formatear el id_number, que no contenga puntos ni guiones, ejemplo 13.771.083  --> 13771083
+                
+                * Se agrega un campo (type_id) donde se definira el tipo de id_number, por ejemplo:
+                    si tienes la indentificacion DNI 38.275.100 deberias de tener:
+                            id_number= 38275100
+                            type_id= DNI
+                            
+                * Formatear el genero, si es Maculino guardar 'M' si es Femenino guardar 'F'
+                
+                * Verificar que lo campos sean correctos por ejemplo en la persona:
+                        Hugo Alberto Taborda (buscarlo en la pagina y entrar al detalle)
+                  En el campo nacionalidad te devuelve una fecha, no es un defecto del crawler sino de la pagina
+                  para ello vas a tener que corrobar que lo que venga en ese campo no sea una fecha.
+                            
+                '''
                 wanted = {
                     "name": name,
                     "lastname": lastname,
@@ -91,6 +128,7 @@ class Crawler:
                     "nationality": nationality
                 }
                 self.date_wanted.append(wanted)
+                '''Eliminar los comentarios y print inecesarios'''
                 print(f"Esto es el producto: {wanted}")
         except Exception as e:
             print(f"Hubo un error: {e}")
@@ -108,6 +146,11 @@ class Crawler:
 
     def get_information_profile(self):
         try:
+            '''Recorda que la variable soup es local, por lo que no hay problema si quieres volver a poner
+                 response
+                 soup
+               Solo es una aclaracion, no hay error aqui
+            '''
             for profile in self.profiles_links_data:
                 response_1 = requests.get(f"{profile}", headers=config.HEADERS, timeout=100)
                 soup1 = BeautifulSoup(response_1.text, "html.parser")
@@ -120,6 +163,9 @@ class Crawler:
 
     def scraping_profile(self,soup):
         try:
+
+            '''Recorda eliminar los comentarios, el codigo final debe de quedar limpio, da mal aspecto'''
+
             profiles = soup.find_all("div", class_="col-sm-4")
             #print(profiles[0])
             for card in profiles:
@@ -139,6 +185,7 @@ class Crawler:
             soup = BeautifulSoup(response.text, "html.parser")
             self.scraping_profile(soup)
         except:
+            '''Acordate de imprimir el error, para un mejor comprension del mismo'''
             print("Error al intentar solicitar la informacion")
 
 
@@ -148,6 +195,9 @@ class Crawler:
         self.create_files()
         return  None
 
+
+
+'''################### No agregaste el archivo requirements.txt, agregalo #####################'''
 
 if __name__== "__main__":
     crawler = Crawler()
