@@ -1,5 +1,5 @@
 #Datos necesarios:
-from asyncio import timeout
+
 
 #Genero (gender)
 #Apellido (last_name)
@@ -26,8 +26,7 @@ from asyncio import timeout
 #Edad (age)
 
 
-
-
+from asyncio import timeout
 import config
 import requests
 from bs4 import BeautifulSoup
@@ -152,6 +151,4 @@ class Crawler:
 if __name__== "__main__":
     crawler = Crawler()
     crawler.run()
-
-
 
