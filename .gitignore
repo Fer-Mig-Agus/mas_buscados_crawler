@@ -1,0 +1,13 @@
+# No agregaste los archivos mas importantes:
+
+venv
+
+.idea/
+
+__pycache__/
+
+# No debes de subir los arhivos csv y excel que generes, porque muchas veces son muy pesados
+
+date_wanted.csv
+
+date_wanted.xlsx
