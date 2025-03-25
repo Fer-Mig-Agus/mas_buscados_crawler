@@ -27,7 +27,7 @@ from asyncio import timeout
 #Fecha de Nacimiento (date_of_birth)
 #Nacionalidad (nationality)
 #Edad (age)
-
+import re
 import config
 import requests
 from bs4 import BeautifulSoup
@@ -35,7 +35,7 @@ import pandas as pd
 '''El openpyxl no se importa, solo se lo instala y se lo usa'''
 #import openpyxl
 from datetime import datetime
-
+from asyncio import timeout
 
 class Crawler:
     def __init__(self):
@@ -48,24 +48,33 @@ class Crawler:
             wanted_data = soup1.find_all("div", class_="col-sm-12")
 
             for wanted in wanted_data:
-                # Extraemos los datos del HTML y asignamos "N/A" si no existen
-                gender = wanted.find("label", attrs={"for": "GeneroId"}).next_sibling or "N/A"
-                lastname = wanted.find("label", attrs={"for": "Apellidos"}).next_sibling or "N/A"
-                name = wanted.find("label", attrs={"for": "Nombres"}).next_sibling or "N/A"
-                birthdate = wanted.find("label", attrs={"for": "FecNac"}).next_sibling or "N/A"
-                document = wanted.find("label", attrs={"for": "Documento"}).next_sibling or "N/A"
-                nationality = wanted.find("label", attrs={"for": "LugNac"}).next_sibling or "N/A"
+                # Extraer datos correctamente
+                gender_tag = wanted.find("label", attrs={"for": "GeneroId"})
+                lastname_tag = wanted.find("label", attrs={"for": "Apellidos"})
+                name_tag = wanted.find("label", attrs={"for": "Nombres"})
+                birthdate_tag = wanted.find("label", attrs={"for": "FecNac"})
+                document_tag = wanted.find("label", attrs={"for": "Documento"})
+                nationality_tag = wanted.find("label", attrs={"for": "LugNac"})
 
-                # Limpiamos los datos eliminando ":" y espacios extra
-                gender = gender.replace(":", "").strip()
-                lastname = lastname.replace(":", "").strip()
-                name = name.replace(":", "").strip()
-                birthdate = birthdate.replace(":", "").strip()
-                document = document.replace(":", "").strip()
-                nationality = nationality.replace(":", "").strip()
+                # Extraer valores correctamente
+                gender = gender_tag.get_text(strip=True) if gender_tag else "None"
+                lastname = lastname_tag.get_text(strip=True) if lastname_tag else "None"
+                name = name_tag.get_text(strip=True) if name_tag else "None"
+                birthdate = birthdate_tag.get_text(strip=True) if birthdate_tag else "None"
+                document = document_tag.get_text(strip=True) if document_tag else "None"
+                nationality = nationality_tag.get_text(strip=True) if nationality_tag else "None"
 
+                # Procesar nombre
+                if name and name != "None":
+                    first_name, second_name = (name.split(maxsplit=1) + ["None"])[:2]
+                else:
+                    first_name, second_name = "None", "None"
+
+                # Formatear ID
+                id_number = re.sub(r"[.\-]", "", document) if document != "None" else "None"
+
+                # Convertir fecha si es válida
                 try:
-                    # Mapeo de meses en español a inglés
                     meses = {
                         "ene": "Jan", "feb": "Feb", "mar": "Mar", "abr": "Apr", "may": "May", "jun": "Jun",
                         "jul": "Jul", "ago": "Aug", "sep": "Sep", "oct": "Oct", "nov": "Nov", "dic": "Dec"
@@ -76,61 +85,26 @@ class Crawler:
                             birthdate = birthdate.replace(esp, eng)
                             break
 
-                    birthdate = datetime.strptime(birthdate, "%d %b %Y").date()
-                    birthdate_str = birthdate.strftime("%d/%m/%Y")
-
+                    birthdate_obj = datetime.strptime(birthdate, "%d %b %Y").date()
+                    birthdate_str = birthdate_obj.strftime("%Y-%m-%d")
                 except ValueError:
-                    birthdate_str = "N/A"  # Si la fecha no se puede convertir, dejamos "N/A"
+                    birthdate_str = "N/A"
 
-                # Diccionario con los datos requeridos
-
-                ''' Estos son los campos que se solicitaron
-                    
-                    * first_name
-                    * middle_name
-                    * last_name
-                    * second_name
-                    * id_numer
-                    * type_id
-                    * gender
-                    * date_of_birth
-                    * age
-                    * nationality
-                
-                Cosas a mejorar:   
-                * En el caso de que algun campo no exista, directamente colocar: None como su valor
-                
-                * La fecha debe de tener este formato: yyyy-mm-dd Ejemplo: 1998-03-35
-                
-                * Formatear el id_number, que no contenga puntos ni guiones, ejemplo 13.771.083  --> 13771083
-                
-                * Se agrega un campo (type_id) donde se definira el tipo de id_number, por ejemplo:
-                    si tienes la indentificacion DNI 38.275.100 deberias de tener:
-                            id_number= 38275100
-                            type_id= DNI
-                            
-                * Formatear el genero, si es Maculino guardar 'M' si es Femenino guardar 'F'
-                
-                * Verificar que lo campos sean correctos por ejemplo en la persona:
-                        Hugo Alberto Taborda (buscarlo en la pagina y entrar al detalle)
-                  En el campo nacionalidad te devuelve una fecha, no es un defecto del crawler sino de la pagina
-                  para ello vas a tener que corrobar que lo que venga en ese campo no sea una fecha.
-                            
-                '''
+                # Guardar datos en diccionario
                 wanted = {
-                    "name": name,
+                    "first_name": first_name,
+                    "second_name": second_name,
                     "lastname": lastname,
                     "gender": gender,
-                    "birthdate":birthdate_str ,
-                    "document": document,
+                    "birthdate": birthdate_str,
+                    "document": id_number,
                     "nationality": nationality
                 }
                 self.date_wanted.append(wanted)
-                '''Eliminar los comentarios y print inecesarios'''
-                print(f"Esto es el producto: {wanted}")
+
+                break  # Solo procesar el primer resultado
         except Exception as e:
             print(f"Hubo un error: {e}")
-
 
     def create_files(self):
         if len(self.date_wanted) != 0:
@@ -165,13 +139,9 @@ class Crawler:
             '''Recorda eliminar los comentarios, el codigo final debe de quedar limpio, da mal aspecto'''
 
             profiles = soup.find_all("div", class_="col-sm-4")
-            #print(profiles[0])
             for card in profiles:
                 profile_link_data = card.find("div", class_= "panel-body").find("a").attrs.get("href")
-                #print(f"Link de perfil encontrado: {config.BASE_URL_PROFILE}{profile_link_data}")
                 profile_link_data_single = config.BASE_URL_PROFILE+profile_link_data
-                #print(f"Esto es lo que tengo en profile_link_data_single{profile_link_data_single}")
-                #self.get_information_profile(profile_link_data_single)
                 self.profiles_links_data.append(profile_link_data_single)
         except Exception as e:
             print(f"Error al extraer  la informacion: {e}")
@@ -182,15 +152,16 @@ class Crawler:
             response = requests.get(f"{config.BASE_URL_PAGE}", headers=config.HEADERS, timeout=100)
             soup = BeautifulSoup(response.text, "html.parser")
             self.scraping_profile(soup)
-        except:
+        except Exception as e:
+
             '''Acordate de imprimir el error, para un mejor comprension del mismo'''
-            print("Error al intentar solicitar la informacion")
+            print(f"Error al intentar solicitar la informacion: {e}")
 
 
     def run(self):
         self.get_all_information()
         self.get_information_profile()
-        self.create_files()
+        #self.create_files()
         return  None
 
 
